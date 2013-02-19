@@ -41,15 +41,13 @@ __END__
             request = new XMLHttpRequest()
             request.open('POST', '/', true)
             request.setRequestHeader('Content-Type', 'application/json')
-            request.send(message)
+            request.send(JSON.stringify(message))
           }
 
           this.source = new EventSource('/stream')
 
           var that = this
-
           this.source.addEventListener('message', function(event) {
-            console.log(event)
             that.onmessage(event.data)
           }, false);
         }
@@ -59,82 +57,66 @@ __END__
         var server = new ServerConnection()
 
         server.onmessage = function(message) {
-          console.log(message)
           message = JSON.parse(message)
+          console.log(message)
 
           switch(message.type) {
             case 'offer':
-              console.log('receivedOffer')
               if(!started) { openConnection() }
               connection.setRemoteDescription(new RTCSessionDescription(message))
               connection.createAnswer(function(sessionDescription) {
                 connection.setLocalDescription(sessionDescription)
-                console.log('createAnswer')
-                console.log(sessionDescription)
-                server.send(JSON.stringify(sessionDescription))
+                server.send(sessionDescription)
               })
               break
             case 'answer':
-              console.log('receivedAnswer')
-              console.log(message)
               connection.setRemoteDescription(new RTCSessionDescription(message))
               break
             case 'candidate':
-              console.log('receivedCandidate')
-              console.log(message)
-              candidate = new RTCIceCandidate({ 'sdpMLineIndex': message.label, 'candidate': message.candidate })
-              connection.addIceCandidate(candidate)
-              break
-            default:
-              console.log('receivedDefault')
-              console.log(message)
+              connection.addIceCandidate(new RTCIceCandidate({
+                sdpMLineIndex: message.label,
+                candidate: message.candidate
+              }))
               break
           }
         }
 
-        connection = new webkitRTCPeerConnection({ 'iceServers': [{ 'url': 'stun:stun.l.google.com:19302' }] })
+        connection = new webkitRTCPeerConnection({ iceServers: [{ url: 'stun:stun.l.google.com:19302' }] })
 
         connection.onicecandidate = function(event) {
           if(event.candidate) {
-            console.log('onicecandidate')
-            console.log(event.candidate)
-            server.send(JSON.stringify({ type: 'candidate', label: event.candidate.spdMLineIndex, id: event.candidate.sdpMid, candidate: event.candidate.candidate }))
+            server.send({
+              type: 'candidate',
+              label: event.candidate.spdMLineIndex,
+              id: event.candidate.sdpMid,
+              candidate: event.candidate.candidate
+            })
           }
         }
 
         connection.onaddstream = function(event) {
-          console.log('onaddstream' + event)
           video.src = URL.createObjectURL(event.stream)
         }
 
         openConnection = function() {
           started = true
-          console.log('openConnection')
-
-          onUserMediaSuccess = function(stream) {
-            console.log('addStream')
-            connection.addStream(stream)
-          }
-
-          navigator.webkitGetUserMedia({ 'audio': true, 'video': true }, onUserMediaSuccess, null)
 
           connection.createOffer(function(sessionDescription) {
             connection.setLocalDescription(sessionDescription)
-            console.log('createOffer')
-            console.log(sessionDescription)
-            server.send(JSON.stringify(sessionDescription))
+            server.send(sessionDescription)
           })
         }
 
-        start.onclick = function() {
+        onUserMediaSuccess = function(stream) {
+          connection.addStream(stream)
           openConnection()
-          return false
         }
+
+        navigator.webkitGetUserMedia({ 'audio': true, 'video': true }, onUserMediaSuccess, null)
       }
     </script>
   </head>
   <body>
-    <a id="start" href="#">Start Video</a>
     <video id="video" autoplay="autoplay"></video>
   </body>
 </html>
