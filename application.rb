@@ -16,8 +16,12 @@ helpers do
     settings.connections[session[:id]] = connection
   end
 
+  def remove_connection(connection)
+    settings.connections.delete_if { |_, v| v == connection }
+  end
+
   def other_connections
-    Hash[settings.connections.reject{ |k, _| k == session[:id] }].values
+    Hash[settings.connections.reject { |k, _| k == session[:id] }].values
   end
 
   def event(data)
@@ -34,11 +38,15 @@ get '/' do
 end
 
 get '/stream', provides: 'text/event-stream' do
-  stream(:keep_open) { |out| add_connection(out) }
+  stream(:keep_open) { |out|
+    add_connection(out)
+    out.callback { remove_connection(out) }
+  }
 end
 
 post '/' do
-  other_connections.each { |out| out << event(request.body.read) }
+  message = event(request.body.read)
+  other_connections.each { |out| out << message }
   204
 end
 
