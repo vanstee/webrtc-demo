@@ -7,19 +7,38 @@ configure do
   enable :sessions
 end
 
+helpers do
+  def assign_session
+    session[:id] ||= SecureRandom.uuid
+  end
+
+  def add_connection(connection)
+    settings.connections[session[:id]] = connection
+  end
+
+  def other_connections
+    Hash[settings.connections.reject{ |k, _| k == session[:id] }].values
+  end
+
+  def event(data)
+    "data: #{data}\n\n"
+  end
+end
+
+before do
+  assign_session
+end
+
 get '/' do
-  session[:id] ||= SecureRandom.uuid
   erb :peerconnection
 end
 
 get '/stream', provides: 'text/event-stream' do
-  stream :keep_open do |out|
-    settings.connections[session[:id]] = out
-  end
+  stream(:keep_open) { |out| add_connection(out) }
 end
 
 post '/' do
-  settings.connections.reject{ |k, _| k == session[:id] }.each { |_, out| out << "data: #{request.body.read}\n\n" }
+  other_connections.each { |out| out << event(request.body.read) }
   204
 end
 
