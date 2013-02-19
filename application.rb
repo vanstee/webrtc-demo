@@ -55,7 +55,7 @@ __END__
     <title>Peer Connections</title>
     <script type="text/javascript">
       window.onload = function() {
-        ServerConnection = function() {
+        function ServerConnection() {
           this.send = function(message) {
             request = new XMLHttpRequest()
             request.open('POST', '/', true)
@@ -117,7 +117,7 @@ __END__
           video.src = URL.createObjectURL(event.stream)
         }
 
-        openConnection = function() {
+        function openConnection() {
           started = true
 
           connection.createOffer(function(sessionDescription) {
@@ -126,12 +126,12 @@ __END__
           })
         }
 
-        onUserMediaSuccess = function(stream) {
+        function onUserMediaSuccess(stream) {
           connection.addStream(stream)
           openConnection()
         }
 
-        navigator.webkitGetUserMedia({ 'audio': true, 'video': true }, onUserMediaSuccess, null)
+        navigator.webkitGetUserMedia({ audio: true, video: true }, onUserMediaSuccess, null)
       }
     </script>
   </head>
@@ -147,15 +147,15 @@ __END__
     <title>Media Streams</title>
     <script type="text/javascript">
       window.onload = function() {
-        onUserMediaSuccess = function (stream) {
+        function onUserMediaSuccess(stream) {
           video.src = URL.createObjectURL(stream)
         }
 
-        onUserMediaError = function (stream) {
+        function onUserMediaError(stream) {
           console.log('Oops something went wrong!')
         }
 
-        navigator.webkitGetUserMedia({ 'audio': true, 'video': true }, onUserMediaSuccess, onUserMediaError)
+        navigator.webkitGetUserMedia({ audio: true, video: true }, onUserMediaSuccess, onUserMediaError)
       }
     </script>
   </head>
